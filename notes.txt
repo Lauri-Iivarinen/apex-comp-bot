@@ -1,0 +1,4 @@
+match_url = https://overstat.gg/tournament/108/6943.Lobby_2_6_27_2024/drops/storm-point
+results_api = https://overstat.gg/api/stats/6943/overall
+drops_api = https://overstat.gg/api/drops/6943/mp_rr_tropic_island_mu2
+worlds_edge = mp_rr_desertlands_hu_lc
