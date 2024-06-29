@@ -2,6 +2,10 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 from web_handler import Web_handler
+import time
+import threading
+import asyncio
+import aiohttp
 
 class MyClient(discord.Client):
 
@@ -49,8 +53,20 @@ class MyClient(discord.Client):
         await channel.purge()
 
     def get_drops_creation_date(self):
-        dt = datetime.now()
+        self.today = dt = datetime.now()
         return f"# Drops for {dt.day}.{dt.month}.{dt.year}: #"
+    
+    def print_res(self, res):
+        print(res)
+
+    async def poll_results(self):
+        dt = datetime.now()
+        if dt.day != self.today.day:
+            return
+        res = self.wh.get_results(None)
+        #print(res["total"])
+        #time.sleep(10)
+        
     
     async def command_drops(self, command, message, contest_arr = [False, False, False], detailed = False, details = ["", "Worlds Edge:", "Storm Point:", "Broken Moon:", "Olympus:", "Kings Canyon:"]):
         if message.channel.name != 'lootpaths-dev':
@@ -66,8 +82,13 @@ class MyClient(discord.Client):
             await self.print_image_to_channel(command[i], message.channel)
     
     async def command_lobby(self, command, message):
-        self.wh = Web_handler(command[1], self.team_name)
-        await self.command_drops(["",self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
+        try:
+            self.wh.set_lobby(command[1])
+        except AttributeError:
+            self.wh = Web_handler(command[1], self.team_name)
+
+        await self.command_drops(["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
+        await self.poll_results()
     
     async def print_help_text(self, channel):
         await channel.send(
@@ -86,6 +107,8 @@ class MyClient(discord.Client):
                 await self.command_drops(command, message)
             elif command[0] == '!lobby':
                 await self.command_lobby(command, message)
+            elif command[0] == '!th':
+                print(threading.active_count())
         if message.channel.name == 'imagebank-dev':
             await self.get_all_imgs_to_map()
         

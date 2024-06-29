@@ -14,7 +14,9 @@ class Test_web_handler(unittest.TestCase):
         drops = {"OOREDOO": [{"teamName": "OOREDOO","map": "mp_rr_tropic_island_mu2","color": "#1a4768","drop": "Zeus Station"}],"REBELS": [{"teamName": "REBELS","map": "mp_rr_tropic_island_mu2","color": "#764b01","drop": "Echo MD"}]}
         self.assertEqual(self.web_handler.get_team_drop(drops), ("echo_md" ,False),)
         drops = {"OOREDOO": [{"teamName": "OOREDOO","map": "mp_rr_tropic_island_mu2","color": "#1a4768","drop": "Zeus Station"}],"REBELS": [{"teamName": "REBELS","map": "mp_rr_tropic_island_mu2","color": "#1a4768","drop": "Zeus Station"},{"teamName": "REBELS","map": "mp_rr_tropic_island_mu2","color": "#764b01","drop": "Echo MD"}]}
-        self.assertEqual(self.web_handler.get_team_drop(drops), ("zeus_station&echo_md", True))
+        self.assertEqual(self.web_handler.get_team_drop(drops), ("echo_md&zeus_station", True))
+        drops = {"OOREDOO": [{"teamName": "OOREDOO","map": "mp_rr_tropic_island_mu2","color": "#1a4768","drop": "Zeus Station"}],"REBELS": [{"teamName": "REBELS","map": "mp_rr_tropic_island_mu2","color": "#1a4768","drop": "Zeus Station"},{"teamName": "REBELS","map": "mp_rr_tropic_island_mu2","color": "#764b01","drop": "Echo MD"}]}
+        self.assertEqual(self.web_handler.get_team_drop(drops), ("echo_md&zeus_station", True))
     
     def test_are_we_contested(self):
         drops = {"OOREDOO": [{"teamName": "OOREDOO","map": "mp_rr_tropic_island_mu2","color": "#1a4768","drop": "Zeus Station"}],"REBELS": [{"teamName": "REBELS","map": "mp_rr_tropic_island_mu2","color": "#764b01","drop": "Echo MD"}]}
