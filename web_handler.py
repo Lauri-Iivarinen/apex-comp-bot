@@ -62,7 +62,7 @@ class Web_handler():
         self.today = today
         #Vaihda niin ettei pollausta lopeteta vaan url vaan vaihtuu, pollaus lopetetan aikataulun mukaan
         print(self.polling)
-        interval = 10 #300
+        interval = 300
         if not self.polling:
             print("starting")
             self.polling = True
