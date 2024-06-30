@@ -4,19 +4,28 @@ import aiohttp
 import time
 import threading
 import json
+from datetime import datetime
 
 class Web_handler():
 
     async def poll_get_request(self, url, interval):
         
         async with aiohttp.ClientSession() as session:
-            while self.polling:
-                async with session.get(url) as response:
+            while datetime.now().day == self.today.day:
+                async with session.get(self.lobby_url) as response:
                     res = await response.json()
                     # Process the response here
-                    print(url)
-                    print(res.keys())
+                    print(self.lobby_url)
+                    print(response.status)
+                    if res != self.results:
+                        self.results = res
+                        await self.print_res(res)
                 await asyncio.sleep(interval)
+        
+        print("Loop has ended")
+        self.loop.stop()
+        #self.polling_thread.join()
+        self.polling = False
 
     def run_event_loop(self):
         asyncio.set_event_loop(self.loop)
@@ -49,26 +58,16 @@ class Web_handler():
         self.lobby = self.parse_url(url)
         self.lobby_url = f'https://overstat.gg/api/stats/{self.lobby}/overall'
 
-    def get_results(self, func):
+    def get_results(self, today: datetime):
+        self.today = today
         #Vaihda niin ettei pollausta lopeteta vaan url vaan vaihtuu, pollaus lopetetan aikataulun mukaan
         print(self.polling)
-        interval = 120
-        if self.polling:
-            print("Stopping polling")
-            self.loop.stop()
-            #self.polling_thread.join()
-            self.polling = False
-        else:
+        interval = 10 #300
+        if not self.polling:
             print("starting")
             self.polling = True
-        # URL to poll and the interval in seconds
             self.start_polling_thread(f'https://overstat.gg/api/stats/{self.lobby}/overall', interval)
-        #https://overstat.gg/api/stats/6943/overall
-        #res = requests.get(f'https://overstat.gg/api/stats/{self.lobby}/overall')
-        #if res.status_code != 200:
-        #    return {}
-        #res = res.json()
-        #return res
+
     
     def are_we_contested(self, drops, team_drops) -> bool:
         team_drops = list(map(lambda t: t["drop"], team_drops))
@@ -99,8 +98,12 @@ class Web_handler():
         self.team_we, self.contest_we = self.get_team_drop(self.drops_we)
         self.team_sp, self.contest_sp = self.get_team_drop(self.drops_sp)
 
-    def __init__(self, url: str, team_name: str) -> None:
+    def __init__(self, url: str, team_name: str, print_res, print_drops) -> None:
         self.lobby = self.parse_url(url)
         self.team_name = team_name
         self.refresh_drops()
         self.polling = False
+        self.lobby_url = f'https://overstat.gg/api/stats/{self.lobby}/overall'
+        self.results = {}
+        self.print_res = print_res
+        self.print_drops = print_drops

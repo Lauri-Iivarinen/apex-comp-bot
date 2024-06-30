@@ -2,19 +2,18 @@ import discord
 from discord.ext import commands
 from datetime import datetime
 from web_handler import Web_handler
-import time
 import threading
-import asyncio
-import aiohttp
+
 
 class MyClient(discord.Client):
 
     def __init__(self, *, intents, **options) -> None:
         super().__init__(intents=intents, **options)
 
-    def add_variables(self, img_bank_id, team_name):
+    def add_variables(self, img_bank_id, team_name, results_channel):
         self.img_bank_id = img_bank_id
         self.team_name = team_name
+        self.results_channel_id = results_channel
 
     def allowed_channel(self, channel):
         #print(channel.name)
@@ -55,15 +54,90 @@ class MyClient(discord.Client):
     def get_drops_creation_date(self):
         self.today = dt = datetime.now()
         return f"# Drops for {dt.day}.{dt.month}.{dt.year}: #"
+
+    def find_team(self, teams: list[dict]) -> dict:
+        team = {}
+        for t in teams:
+            if t["name"] == self.team_name:
+                return t
+        return team
+
+    def format_details(self, value, format_to) -> str:
+        value = str(value)
+        string = f"{value}"
+        spc = " "
+        string = string + spc*(len(format_to)-len(value))
+        return string
     
-    def print_res(self, res):
+    def get_player_results(self, team: dict) -> str:
+        res = f''
+        for pl in team["player_stats"]:
+            res = res + f'**{pl["name"]}**:\n```Kills Knocks Damage Accuracy\n{self.format_details(pl["kills"], "Kills ")}{self.format_details(pl["knockdowns"], "Knocks ")}{self.format_details(pl["damageDealt"], "Damage ")}{pl["accuracy"]}```\n'
+        return res
+    
+    def get_game_results(self, games: list[dict]) -> str:
+        game_str = f'```Game Plcmt Pts Kills Dmg\n'
+        for i in range(0, len(games)):
+            game = games[i]
+            team = self.find_team(game["teams"])
+            team = team["overall_stats"]
+            game_str = game_str + f'{self.format_details(i+1, "Game ")}{self.format_details(team["teamPlacement"], "Plcmt ")}{self.format_details(team["score"], "Pts ")}{self.format_details(team["kills"], "Kills ")}{team["damageDealt"]}\n'
+        game_str = game_str + '```'
+        return game_str
+    
+    def format_placement(self, num) -> str:
+        if num == 1:
+            return "1st"
+        elif num == 2:
+            return "2nd"
+        elif num == 3:
+            return "3rd"
+        return f"{num}th"
+    
+    def get_placement(self, results: dict) -> str:
+        res = f""
+        teams = results["teams"]
+        for i in range(0, len(teams)):
+            if teams[i]["name"] == self.team_name and i == 0:
+                return "1st"
+            elif teams[i]["name"] == self.team_name:
+                prev_team = teams[i-1]["overall_stats"]
+                team = teams[i]["overall_stats"]
+                return f'{self.format_placement(i+1)} - {(prev_team["score"] - team["score"])}pts behind {self.format_placement(i)}'
+        return "-"
+
+    def format_results(self, results: dict) -> str:
+        total_games = results['total']
+        games_arr = results['games']
+        games_played = len(games_arr)
+        quality_score = str(round(results['analytics']['qualityScore'], 2))
+        team = self.find_team(results['teams'])
+        player_results: str = self.get_player_results(team)
+        dt = self.today
+        game_results = self.get_game_results(results["games"])
+        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{total_games} # \n**Quality:** {quality_score}\n**Placement:** {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
+    
+    async def print_res(self, res):
+        channel = await self.fetch_channel(self.results_channel_id)
+        print('printing results in client')
+        messages = [message async for message in channel.history(limit=100)]
+        if len(messages) != 1: # Channel either has no messages yet or channel has been filled with trash
+            await channel.purge()
+            await channel.send(self.format_results(res))
+            return
+        message = messages[0]
+        await message.edit(content=self.format_results(res))
+        
+        
+    
+    def print_drops(self, res):
         print(res)
 
     async def poll_results(self):
         dt = datetime.now()
         if dt.day != self.today.day:
             return
-        res = self.wh.get_results(None)
+        res = self.wh.get_results(self.today)
         #print(res["total"])
         #time.sleep(10)
         
@@ -85,8 +159,7 @@ class MyClient(discord.Client):
         try:
             self.wh.set_lobby(command[1])
         except AttributeError:
-            self.wh = Web_handler(command[1], self.team_name)
-
+            self.wh = Web_handler(command[1], self.team_name, self.print_res, self.print_drops)
         await self.command_drops(["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
         await self.poll_results()
     
@@ -98,7 +171,7 @@ class MyClient(discord.Client):
         if message.author == self.user:
             return
         if message.content == '!help':
-                await self.print_help_text(message.channel)
+            await self.print_help_text(message.channel)
         if not self.allowed_channel(message.channel):
             return
         if message.content[0] == '!':
