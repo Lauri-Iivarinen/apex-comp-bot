@@ -10,14 +10,15 @@ class MyClient(discord.Client):
     def __init__(self, *, intents, **options) -> None:
         super().__init__(intents=intents, **options)
 
-    def add_variables(self, img_bank_id, team_name, results_channel):
+    def add_variables(self, img_bank_id, team_name, results_channel, loot_path_channel_id):
         self.img_bank_id = img_bank_id
         self.team_name = team_name
         self.results_channel_id = results_channel
+        self.loot_path_channel_id = loot_path_channel_id
 
     def allowed_channel(self, channel):
         #print(channel.name)
-        chls: list[str] = ['lootpaths-dev', 'imagebank-dev']
+        chls: list[str] = ['lootpaths-dev', 'imagebank-dev', 'dev', 'general', 'loot-pathit']
         if channel.name in chls:
             return True
         return False
@@ -48,8 +49,9 @@ class MyClient(discord.Client):
         await self.get_all_imgs_to_map()
         print(f'Logged on as {self.user}!')
     
-    async def clear_drops_channel(self, channel):
-        await channel.purge()
+    async def clear_drops_channel(self):
+        chl = await self.fetch_channel(self.loot_path_channel_id)
+        await chl.purge()
 
     def get_drops_creation_date(self):
         self.today = dt = datetime.now()
@@ -95,6 +97,8 @@ class MyClient(discord.Client):
         return f"{num}th"
     
     def get_placement(self, results: dict) -> str:
+        if 'games' not in results:
+            return '-'
         res = f""
         teams = results["teams"]
         for i in range(0, len(teams)):
@@ -107,14 +111,22 @@ class MyClient(discord.Client):
         return "-"
 
     def format_results(self, results: dict) -> str:
-        total_games = results['total']
-        games_arr = results['games']
+        total_games = 0
+        if 'total' in results:
+            total_games = results['total']
+        games_arr = []
+        if 'games' in results:
+            games_arr = results['games']
         games_played = len(games_arr)
-        quality_score = str(round(results['analytics']['qualityScore'], 2))
+        quality_score = '-'
+        if 'analytics' in results and 'qualityScore' in results["analytics"]:
+            quality_score = str(round(results['analytics']['qualityScore'], 2))
         team = self.find_team(results['teams'])
         player_results: str = self.get_player_results(team)
         dt = self.today
-        game_results = self.get_game_results(results["games"])
+        game_results = ''
+        if 'games' in results:
+            game_results = self.get_game_results(results["games"])
         return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{total_games} # \n**Quality:** {quality_score}\n**Placement:** {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
     
     async def print_res(self, res):
@@ -143,17 +155,16 @@ class MyClient(discord.Client):
         
     
     async def command_drops(self, command, message, contest_arr = [False, False, False], detailed = False, details = ["", "Worlds Edge:", "Storm Point:", "Broken Moon:", "Olympus:", "Kings Canyon:"]):
-        if message.channel.name != 'lootpaths-dev':
-            return
-        await self.clear_drops_channel(message.channel)
-        await message.channel.send(self.get_drops_creation_date())
+        channel = await self.fetch_channel(self.loot_path_channel_id)
+        await self.clear_drops_channel()
+        await channel.send(self.get_drops_creation_date())
         for i in range(1, len(command)):
             if detailed:
                 msg_str: str = details[i]
                 if contest_arr[i]:
                     msg_str = msg_str.replace(':', ", :sos: **CONTESTED** :sos::")
-                await message.channel.send(msg_str)
-            await self.print_image_to_channel(command[i], message.channel)
+                await channel.send(msg_str)
+            await self.print_image_to_channel(command[i], channel)
     
     async def command_lobby(self, command, message):
         try:

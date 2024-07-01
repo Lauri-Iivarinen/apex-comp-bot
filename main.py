@@ -11,15 +11,16 @@ def read_env():
     IMG_CHANNEL_ID = os.getenv('img_bank_id')
     TEAM = os.getenv('team_name')
     RESULTS_CHANNEL = os.getenv('results_channel')
-    return TOKEN, IMG_CHANNEL_ID, TEAM, RESULTS_CHANNEL
+    LOOT_PATH_CHANNEL_ID = os.getenv('loot_path_channel_id')
+    return TOKEN, IMG_CHANNEL_ID, TEAM, RESULTS_CHANNEL, LOOT_PATH_CHANNEL_ID
 
 def main():
-    TOKEN, IMG_CHANNEL_ID, TEAM, RESULTS_CHANNEL = read_env()
+    TOKEN, IMG_CHANNEL_ID, TEAM, RESULTS_CHANNEL, LOOT_PATH_CHANNEL_ID = read_env()
     intents = discord.Intents.default()
     intents.message_content = True
 
     client = MyClient(intents=intents)
-    client.add_variables(IMG_CHANNEL_ID, TEAM, RESULTS_CHANNEL)
+    client.add_variables(IMG_CHANNEL_ID, TEAM, RESULTS_CHANNEL, LOOT_PATH_CHANNEL_ID)
     client.run(TOKEN)
     #wh = Web_handler("https://overstat.gg/tournament/108/6943.Lobby_2_6_27_2024")
     #wh.get_worlds_edge_drops()

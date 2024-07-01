@@ -32,7 +32,6 @@ class Web_handler():
         self.loop.run_forever()
 
     def start_polling_thread(self, url, interval):
-        
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         asyncio.ensure_future(self.poll_get_request(url, interval))
@@ -62,7 +61,7 @@ class Web_handler():
         self.today = today
         #Vaihda niin ettei pollausta lopeteta vaan url vaan vaihtuu, pollaus lopetetan aikataulun mukaan
         print(self.polling)
-        interval = 300
+        interval = 150
         if not self.polling:
             print("starting")
             self.polling = True
