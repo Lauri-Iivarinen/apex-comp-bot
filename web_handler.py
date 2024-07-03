@@ -9,9 +9,13 @@ from datetime import datetime
 class Web_handler():
 
     async def poll_get_request(self, url, interval):
-        
+        dt = datetime.now()
+        scrim_start_dt = datetime(dt.year, dt.month, dt.day, 20, 15, 0)
+        time_left_s = (scrim_start_dt-dt).seconds
+        if time_left_s > 0:
+            await asyncio.sleep(time_left_s)
         async with aiohttp.ClientSession() as session:
-            while datetime.now().day == self.today.day:
+            while datetime.now().day < 23:
                 async with session.get(self.lobby_url) as response:
                     res = await response.json()
                     # Process the response here
@@ -21,7 +25,6 @@ class Web_handler():
                         self.results = res
                         await self.print_res(res)
                 await asyncio.sleep(interval)
-        
         print("Loop has ended")
         self.loop.stop()
         #self.polling_thread.join()
@@ -37,8 +40,6 @@ class Web_handler():
         asyncio.ensure_future(self.poll_get_request(url, interval))
         self.polling_thread = threading.Thread(target=self.run_event_loop)
         self.polling_thread.daemon = True  # This allows the thread to exit when the main program exits
-       
-        
 
     def parse_url(self, url: str):
         if "tournament" not in url:
@@ -61,7 +62,7 @@ class Web_handler():
         self.today = today
         #Vaihda niin ettei pollausta lopeteta vaan url vaan vaihtuu, pollaus lopetetan aikataulun mukaan
         print(self.polling)
-        interval = 150
+        interval = 60
         if not self.polling:
             print("starting")
             self.polling = True

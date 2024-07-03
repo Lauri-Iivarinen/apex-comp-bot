@@ -87,6 +87,7 @@ class MyClient(discord.Client):
         game_str = game_str + '```'
         return game_str
     
+    #Only 20 teams in apex so no need to worry about 21st place etc
     def format_placement(self, num) -> str:
         if num == 1:
             return "1st"

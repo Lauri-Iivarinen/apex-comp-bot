@@ -4,7 +4,7 @@ from web_handler import Web_handler
 class Test_web_handler(unittest.TestCase):
 
     def setUp(self):
-        self.web_handler = Web_handler("https://overstat.gg/tournament/108/6943.Lobby_2_6_27_2024/drops/storm-point", "REBELS")
+        self.web_handler = Web_handler("https://overstat.gg/tournament/108/6943.Lobby_2_6_27_2024/drops/storm-point", "REBELS", lambda x: print(x), lambda x: print(x))
 
     def test_parse_url(self):
         self.assertEqual(self.web_handler.parse_url("https://overstat.gg/tournament/108/6943.Lobby_2_6_27_2024/drops/storm-point"), "6943")
