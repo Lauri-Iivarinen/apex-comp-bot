@@ -24,6 +24,9 @@ class Web_handler():
                     if res != self.results:
                         self.results = res
                         await self.print_res(res)
+                        print("new result found, sleeping for 15 min")
+                        await asyncio.sleep(900)
+                        print('sleep over')
                 await asyncio.sleep(interval)
         print("Loop has ended")
         self.loop.stop()
