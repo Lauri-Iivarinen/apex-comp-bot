@@ -153,12 +153,13 @@ class MyClient(discord.Client):
         res = self.wh.get_results(self.today)
         #print(res["total"])
         #time.sleep(10)
-        
     
-    async def command_drops(self, command, message, contest_arr = [False, False, False], detailed = False, details = ["", "Worlds Edge:", "Storm Point:", "Broken Moon:", "Olympus:", "Kings Canyon:"]):
+    async def command_drops(self, alert: bool, command, message, contest_arr = [False, False, False], detailed = False, details = ["", "Worlds Edge:", "Storm Point:", "Broken Moon:", "Olympus:", "Kings Canyon:"]):
         channel = await self.fetch_channel(self.loot_path_channel_id)
         await self.clear_drops_channel()
         await channel.send(self.get_drops_creation_date())
+        if alert:
+            await channel.send(f"<@&{1256287813415207022}> there's been a change in contest or landings")
         for i in range(1, len(command)):
             if detailed:
                 msg_str: str = details[i]
@@ -171,8 +172,8 @@ class MyClient(discord.Client):
         try:
             self.wh.set_lobby(command[1])
         except AttributeError:
-            self.wh = Web_handler(command[1], self.team_name, self.print_res, self.print_drops)
-        await self.command_drops(["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
+            self.wh = Web_handler(command[1], self.team_name, self.print_res, self.command_drops)
+        await self.command_drops(False, ["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
         await self.poll_results()
     
     async def print_help_text(self, channel):

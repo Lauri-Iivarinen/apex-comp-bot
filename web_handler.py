@@ -8,20 +8,35 @@ from datetime import datetime
 
 class Web_handler():
 
-    async def poll_get_request(self, url, interval):
-        dt = datetime.now()
-        scrim_start_dt = datetime(dt.year, dt.month, dt.day, 20, 15, 0)
-        time_left_s = (scrim_start_dt-dt).seconds
-        if time_left_s > 0:
-            await asyncio.sleep(time_left_s)
+    def get_url(self, type: str) -> str:
+        if type == "results":
+            return ""
+        if type == "sp":
+            return ""
+        if type == "we":
+            return ""
+        return ""
+    
+    def is_different(self, we, we_c, sp, sp_c):
+        if we != self.team_we:
+            return True
+        if we_c != self.contest_we:
+            return True
+        if sp != self.team_sp:
+            return True
+        if sp_c != self.contest_sp:
+            return True
+        return False
+
+    async def poll_get_request(self, type: str, interval):
         async with aiohttp.ClientSession() as session:
-            while datetime.now().day < 23:
+            while datetime.now().hour < 23:
                 async with session.get(self.lobby_url) as response:
                     res = await response.json()
                     # Process the response here
                     print(self.lobby_url)
                     print(response.status)
-                    if res != self.results:
+                    if "games" in res and res != self.results:
                         self.results = res
                         await self.print_res(res)
                         print("new result found, sleeping for 15 min")
@@ -32,6 +47,33 @@ class Web_handler():
         self.loop.stop()
         #self.polling_thread.join()
         self.polling = False
+    
+    async def poll_get_request_drops(self, type: str, interval):
+        async with aiohttp.ClientSession() as session:
+            while datetime.now().hour < 20:
+                # mp_rr_tropic_island_mu2
+                print("drops")
+                team_we = self.team_we
+                contest_we = self.contest_we
+                team_sp = self.team_sp
+                contest_sp = self.contest_sp
+                async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_desertlands_hu_lc') as response:
+                    res = await response.json()
+                    team_we, contest_we = self.get_team_drop(res)
+                async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_tropic_island_mu2') as response:
+                    res = await response.json()
+                    team_sp, contest_sp = self.get_team_drop(res)
+                if self.is_different(team_we, contest_we, team_sp, contest_sp):
+                    print("DIFF")
+                    print(team_we, team_sp, contest_sp, contest_we)
+                    self.team_we = team_we
+                    self.team_sp = team_sp
+                    self.contest_we = contest_we
+                    self.contest_sp = contest_sp
+                    await self.print_drops(True, ["", self.team_we, self.team_sp], "", [False, self.contest_we, self.contest_sp], True)
+                await asyncio.sleep(600)
+        await asyncio.sleep(900)
+        await self.poll_get_request("aa", 60)
 
     def run_event_loop(self):
         asyncio.set_event_loop(self.loop)
@@ -40,7 +82,7 @@ class Web_handler():
     def start_polling_thread(self, url, interval):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        asyncio.ensure_future(self.poll_get_request(url, interval))
+        asyncio.ensure_future(self.poll_get_request_drops(self.lobby_url, interval))
         self.polling_thread = threading.Thread(target=self.run_event_loop)
         self.polling_thread.daemon = True  # This allows the thread to exit when the main program exits
 
