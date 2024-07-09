@@ -4,17 +4,18 @@ from datetime import datetime
 from web_handler import Web_handler
 import threading
 
-
 class MyClient(discord.Client):
 
     def __init__(self, *, intents, **options) -> None:
         super().__init__(intents=intents, **options)
 
-    def add_variables(self, img_bank_id, team_name, results_channel, loot_path_channel_id):
+    def add_variables(self, img_bank_id, team_name, results_channel, loot_path_channel_id, role_tag_id, archive_channel_id):
         self.img_bank_id = img_bank_id
         self.team_name = team_name
         self.results_channel_id = results_channel
         self.loot_path_channel_id = loot_path_channel_id
+        self.role_tag_id = role_tag_id
+        self.archive_channel_id = archive_channel_id
 
     def allowed_channel(self, channel):
         #print(channel.name)
@@ -111,6 +112,19 @@ class MyClient(discord.Client):
                 return f'{self.format_placement(i+1)} - {(prev_team["score"] - team["score"])}pts behind {self.format_placement(i)}'
         return "-"
 
+    def format_link(self, link: str) -> str:
+        res = link.split('/')
+        res_str = ''
+        for i in range(0,6):
+            res_str = res_str + res[i] + '/'
+        return res_str
+    
+    async def archive_result(self, result: dict):
+        channel = await self.fetch_channel(self.archive_channel_id)
+        dt = datetime.now()
+        link_str = f'**{dt.day}.{dt.month}.{dt.year}**\n<{self.format_link(self.current_link)}>\n{self.get_placement(result)}'
+        await channel.send(link_str)
+
     def format_results(self, results: dict) -> str:
         total_games = 0
         if 'total' in results:
@@ -159,7 +173,7 @@ class MyClient(discord.Client):
         await self.clear_drops_channel()
         await channel.send(self.get_drops_creation_date())
         if alert:
-            await channel.send(f"<@&{1256287813415207022}> there's been a change in contest or landings")
+            await channel.send(f"<@&{self.role_tag_id}> there's been a change in contest or landings")
         for i in range(1, len(command)):
             if detailed:
                 msg_str: str = details[i]
@@ -169,10 +183,13 @@ class MyClient(discord.Client):
             await self.print_image_to_channel(command[i], channel)
     
     async def command_lobby(self, command, message):
+        self.current_link = command[1]
+        await self.archive_result({})
+        await message.add_reaction('\U00002705')
         try:
             self.wh.set_lobby(command[1])
         except AttributeError:
-            self.wh = Web_handler(command[1], self.team_name, self.print_res, self.command_drops)
+            self.wh = Web_handler(command[1], self.team_name, self.print_res, self.command_drops, self.archive_result)
         await self.command_drops(False, ["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
         await self.poll_results()
     
@@ -187,7 +204,7 @@ class MyClient(discord.Client):
             await self.print_help_text(message.channel)
         if not self.allowed_channel(message.channel):
             return
-        if message.content[0] == '!':
+        if len(message.content) > 0 and message.content[0] == '!':
             command = message.content.split(' ')
             if command[0] == '!drops':
                 await self.command_drops(command, message)

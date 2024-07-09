@@ -47,6 +47,7 @@ class Web_handler():
         self.loop.stop()
         #self.polling_thread.join()
         self.polling = False
+        await self.archive_result(self.results)
     
     async def poll_get_request_drops(self, type: str, interval):
         async with aiohttp.ClientSession() as session:
@@ -143,7 +144,7 @@ class Web_handler():
         self.team_we, self.contest_we = self.get_team_drop(self.drops_we)
         self.team_sp, self.contest_sp = self.get_team_drop(self.drops_sp)
 
-    def __init__(self, url: str, team_name: str, print_res, print_drops) -> None:
+    def __init__(self, url: str, team_name: str, print_res, print_drops, archive_result) -> None:
         self.lobby = self.parse_url(url)
         self.team_name = team_name
         self.refresh_drops()
@@ -152,3 +153,4 @@ class Web_handler():
         self.results = {}
         self.print_res = print_res
         self.print_drops = print_drops
+        self.archive_result = archive_result
