@@ -184,7 +184,7 @@ class MyClient(discord.Client):
     
     async def command_lobby(self, command, message):
         self.current_link = command[1]
-        await self.archive_result({})
+        #await self.archive_result({})
         await message.add_reaction('\U00002705')
         try:
             self.wh.set_lobby(command[1])
