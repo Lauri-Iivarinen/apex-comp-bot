@@ -31,17 +31,20 @@ class Web_handler():
     async def poll_get_request(self, type: str, interval):
         async with aiohttp.ClientSession() as session:
             while datetime.now().hour < 23:
-                async with session.get(self.lobby_url) as response:
-                    res = await response.json()
-                    # Process the response here
-                    print(self.lobby_url)
-                    print(response.status)
-                    if "games" in res and res != self.results:
-                        self.results = res
-                        await self.print_res(res)
-                        print("new result found, sleeping for 15 min")
-                        await asyncio.sleep(900)
-                        print('sleep over')
+                try:
+                    async with session.get(self.lobby_url) as response:
+                        res = await response.json()
+                        # Process the response here
+                        print(self.lobby_url)
+                        print(response.status)
+                        if "games" in res and res != self.results:
+                            self.results = res
+                            await self.print_res(res)
+                            print("new result found, sleeping for 15 min")
+                            await asyncio.sleep(900)
+                            print('sleep over')
+                except:
+                    print("Fetching results failed")
                 await asyncio.sleep(interval)
         print("Loop has ended")
         self.loop.stop()
@@ -58,20 +61,23 @@ class Web_handler():
                 contest_we = self.contest_we
                 team_sp = self.team_sp
                 contest_sp = self.contest_sp
-                async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_desertlands_hu_lc') as response:
-                    res = await response.json()
-                    team_we, contest_we = self.get_team_drop(res)
-                async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_tropic_island_mu2') as response:
-                    res = await response.json()
-                    team_sp, contest_sp = self.get_team_drop(res)
-                if self.is_different(team_we, contest_we, team_sp, contest_sp):
-                    print("DIFF")
-                    print(team_we, team_sp, contest_sp, contest_we)
-                    self.team_we = team_we
-                    self.team_sp = team_sp
-                    self.contest_we = contest_we
-                    self.contest_sp = contest_sp
-                    await self.print_drops(True, ["", self.team_we, self.team_sp], "", [False, self.contest_we, self.contest_sp], True)
+                try:
+                    async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_desertlands_hu_lc') as response:
+                        res = await response.json()
+                        team_we, contest_we = self.get_team_drop(res)
+                    async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_tropic_island_mu2') as response:
+                        res = await response.json()
+                        team_sp, contest_sp = self.get_team_drop(res)
+                    if self.is_different(team_we, contest_we, team_sp, contest_sp):
+                        print("DIFF")
+                        print(team_we, team_sp, contest_sp, contest_we)
+                        self.team_we = team_we
+                        self.team_sp = team_sp
+                        self.contest_we = contest_we
+                        self.contest_sp = contest_sp
+                        await self.print_drops(True, ["", self.team_we, self.team_sp], "", [False, self.contest_we, self.contest_sp], True)
+                except:
+                    print("Error fetching drops")
                 await asyncio.sleep(600)
         await asyncio.sleep(900)
         await self.poll_get_request("aa", 60)
