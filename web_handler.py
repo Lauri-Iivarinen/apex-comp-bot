@@ -27,10 +27,26 @@ class Web_handler():
         if sp_c != self.contest_sp:
             return True
         return False
+    
+    def games_remaining(self) -> bool:
+        if "games" not in self.results:
+            return True
+        return len(self.results["games"]) < self.game_count
 
-    async def poll_get_request(self, type: str, interval):
+    def is_not_over(self, end: datetime, current: datetime) -> bool:
+        if end.hour <= current.hour and end.minute <= current.minute:
+            return False
+        return True
+    
+    async def stop_polling(self):
+        print("Loop has ended")
+        self.loop.stop()
+        #self.polling_thread.join()
+        self.polling = False
+
+    async def poll_get_request(self, type: str, interval, end: datetime):
         async with aiohttp.ClientSession() as session:
-            while datetime.now().hour < 23:
+            while self.is_not_over(end, datetime.now()) and self.games_remaining():
                 try:
                     async with session.get(self.lobby_url) as response:
                         res = await response.json()
@@ -46,15 +62,12 @@ class Web_handler():
                 except:
                     print("Fetching results failed")
                 await asyncio.sleep(interval)
-        print("Loop has ended")
-        self.loop.stop()
-        #self.polling_thread.join()
-        self.polling = False
+        await self.stop_polling()
         await self.archive_result(self.results)
     
-    async def poll_get_request_drops(self, type: str, interval):
+    async def poll_get_request_drops(self, start, end, type: str, interval):
         async with aiohttp.ClientSession() as session:
-            while datetime.now().hour < 20:
+            while self.is_not_over(start, datetime.now()):
                 # mp_rr_tropic_island_mu2
                 print("drops")
                 team_we = self.team_we
@@ -79,17 +92,18 @@ class Web_handler():
                 except:
                     print("Error fetching drops")
                 await asyncio.sleep(600)
+        print("polling drops over, sleeping 15min")
         await asyncio.sleep(900)
-        await self.poll_get_request("aa", 60)
+        await self.poll_get_request("aa", 60, end)
 
     def run_event_loop(self):
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
-    def start_polling_thread(self, url, interval):
+    def start_polling_thread(self, start, end, url, interval):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        asyncio.ensure_future(self.poll_get_request_drops(self.lobby_url, interval))
+        asyncio.ensure_future(self.poll_get_request_drops(start, end, self.lobby_url, interval))
         self.polling_thread = threading.Thread(target=self.run_event_loop)
         self.polling_thread.daemon = True  # This allows the thread to exit when the main program exits
 
@@ -110,15 +124,17 @@ class Web_handler():
         self.lobby = self.parse_url(url)
         self.lobby_url = f'https://overstat.gg/api/stats/{self.lobby}/overall'
 
-    def get_results(self, today: datetime):
+    # Starts the polling cycle for drops into game results
+    def get_results(self, today: datetime, games: int, start, end):
         self.today = today
+        self.games = games
         #Vaihda niin ettei pollausta lopeteta vaan url vaan vaihtuu, pollaus lopetetan aikataulun mukaan
         print(self.polling)
         interval = 60
         if not self.polling:
             print("starting")
             self.polling = True
-            self.start_polling_thread(f'https://overstat.gg/api/stats/{self.lobby}/overall', interval)
+            self.start_polling_thread( start, end, f'https://overstat.gg/api/stats/{self.lobby}/overall', interval)
 
     
     def are_we_contested(self, drops, team_drops) -> bool:
@@ -149,6 +165,10 @@ class Web_handler():
         self.drops_sp = self.get_drops("mp_rr_tropic_island_mu2")
         self.team_we, self.contest_we = self.get_team_drop(self.drops_we)
         self.team_sp, self.contest_sp = self.get_team_drop(self.drops_sp)
+    
+    def set_game_count(self, count: int):
+        count = int(count)
+        self.game_count = count
 
     def __init__(self, url: str, team_name: str, print_res, print_drops, archive_result) -> None:
         self.lobby = self.parse_url(url)
@@ -160,3 +180,4 @@ class Web_handler():
         self.print_res = print_res
         self.print_drops = print_drops
         self.archive_result = archive_result
+        self.game_count = 6

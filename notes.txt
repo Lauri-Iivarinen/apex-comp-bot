@@ -6,3 +6,8 @@ worlds_edge = mp_rr_desertlands_hu_lc
 Claimaus järjestyksellä väliä, sorttaa haut ja varmista että kuvapankissa kuva nimet aakkosjärkässä
 
 kuvien lisääminen aiheuttaa errorin, varmista kanava mille kuva lisätään...
+
+uusia komentoja:
+!games, manuaalisesti pelien määrä
+!stop, lopettaa pollaamisen
+!

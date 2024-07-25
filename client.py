@@ -75,7 +75,7 @@ class MyClient(discord.Client):
     def get_player_results(self, team: dict) -> str:
         res = f''
         for pl in team["player_stats"]:
-            res = res + f'**{pl["name"]}**:\n```Kills Knocks Damage Accuracy\n{self.format_details(pl["kills"], "Kills ")}{self.format_details(pl["knockdowns"], "Knocks ")}{self.format_details(pl["damageDealt"], "Damage ")}{pl["accuracy"]}```\n'
+            res = res + f'**{pl["name"]}**:\n```Kills Knocks Damage Hit%\n{self.format_details(pl["kills"], "Kills ")}{self.format_details(pl["knockdowns"], "Knocks ")}{self.format_details(pl["damageDealt"], "Damage ")}{pl["accuracy"]}```\n'
         return res
     
     def get_game_results(self, games: list[dict]) -> str:
@@ -118,17 +118,15 @@ class MyClient(discord.Client):
         for i in range(0,6):
             res_str = res_str + res[i] + '/'
         return res_str
-    
+
     async def archive_result(self, result: dict):
         channel = await self.fetch_channel(self.archive_channel_id)
         dt = datetime.now()
-        link_str = f'**{dt.day}.{dt.month}.{dt.year}**\n<{self.format_link(self.current_link)}>\n{self.get_placement(result)}'
-        await channel.send(link_str)
+        msg = await channel.send(f"<{self.format_link(self.current_link)}>")
+        thrd = await channel.create_thread(name=f'{dt.day}.{dt.month}.{dt.year}', message=msg)
+        await thrd.send(self.get_placement(result))
 
     def format_results(self, results: dict) -> str:
-        total_games = 0
-        if 'total' in results:
-            total_games = results['total']
         games_arr = []
         if 'games' in results:
             games_arr = results['games']
@@ -142,7 +140,7 @@ class MyClient(discord.Client):
         game_results = ''
         if 'games' in results:
             game_results = self.get_game_results(results["games"])
-        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{total_games} # \n**Quality:** {quality_score}\n**Placement:** {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
+        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{self.wh.game_count} # \n**Quality:** {quality_score}\n**Placement:** {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
     
     async def print_res(self, res):
         channel = await self.fetch_channel(self.results_channel_id)
@@ -155,16 +153,15 @@ class MyClient(discord.Client):
         message = messages[0]
         await message.edit(content=self.format_results(res))
         
-        
-    
+
     def print_drops(self, res):
         print(res)
 
-    async def poll_results(self):
+    async def poll_results(self, games: int, start, end):
         dt = datetime.now()
         if dt.day != self.today.day:
             return
-        res = self.wh.get_results(self.today)
+        res = self.wh.get_results(self.today, games, start, end)
         #print(res["total"])
         #time.sleep(10)
     
@@ -182,7 +179,22 @@ class MyClient(discord.Client):
                 await channel.send(msg_str)
             await self.print_image_to_channel(command[i], channel)
     
-    async def command_lobby(self, command, message):
+    async def command_lobby(self, command: list[str], message):
+        current_time = datetime.now()
+        start_time = datetime(current_time.year, current_time.month, current_time.day, 20, 0, 0)
+        end_time = datetime(current_time.year, current_time.month, current_time.day, 23, 0, 0)
+        games = 6
+        if len(command) > 2:
+            # Custom configs
+            for i in range(2,len(command)):
+                if command[i] == 'start=':
+                    start_str = command[i].split(" ")[1].split(":")
+                    start_time = datetime(current_time.year, current_time.month, current_time.day, int(start_str[0]), int(start_str[1]), 0)
+                if command[i] == 'end=':
+                    end_str = command[i].split(" ")[1].split(":")
+                    datetime(current_time.year, current_time.month, current_time.day, int(end_str[0]), int(end_str[1]), 0)
+                if command[i] == 'games=':
+                    games = int(command[i].split(" ")[1])
         self.current_link = command[1]
         #await self.archive_result({})
         await message.add_reaction('\U00002705')
@@ -191,7 +203,7 @@ class MyClient(discord.Client):
         except AttributeError:
             self.wh = Web_handler(command[1], self.team_name, self.print_res, self.command_drops, self.archive_result)
         await self.command_drops(False, ["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
-        await self.poll_results()
+        await self.poll_results(games, start_time, end_time)
     
     async def print_help_text(self, channel):
         await channel.send(
@@ -210,6 +222,20 @@ class MyClient(discord.Client):
                 await self.command_drops(command, message)
             elif command[0] == '!lobby':
                 await self.command_lobby(command, message)
+            elif command[0] == '!stop':
+                try:
+                    await self.wh.stop_polling()
+                    await message.add_reaction('\U00002705')
+                except:
+                    print("No webhandler")
+            elif command[0] == '!games':
+                try:
+                    self.wh.set_game_count(1)
+                    await message.add_reaction('\U00002705')
+                except:
+                    print("No webhandler")
+            elif command[0] == '!test':
+                await self.archive_result_test(command[1])
             elif command[0] == '!th':
                 print(threading.active_count())
         if message.channel.name == 'imagebank-dev':
