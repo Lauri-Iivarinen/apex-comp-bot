@@ -1,4 +1,4 @@
-# Discord bot for Apex Legends scrim scene (EXO only) #
+# Discord bot for Apex Legends scrim scene (Overstat only) #
 Work in progress
 
 ## env ##
