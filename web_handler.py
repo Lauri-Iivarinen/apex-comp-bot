@@ -9,6 +9,7 @@ from datetime import datetime
 class Web_handler():
 
     def get_url(self, type: str) -> str:
+        #lisää uudet mapit
         if type == "results":
             return ""
         if type == "sp":
@@ -18,6 +19,7 @@ class Web_handler():
         return ""
     
     def is_different(self, we, we_c, sp, sp_c):
+        #¤lisää uudet mapit
         if we != self.team_we:
             return True
         if we_c != self.contest_we:
@@ -59,6 +61,8 @@ class Web_handler():
                             print("new result found, sleeping for 15 min")
                             await asyncio.sleep(900)
                             print('sleep over')
+                        if not self.games_remaining(): # if gane count reaches max, end loop without 15min delay
+                            break
                 except:
                     print("Fetching results failed")
                 await asyncio.sleep(interval)
@@ -74,6 +78,7 @@ class Web_handler():
                 contest_we = self.contest_we
                 team_sp = self.team_sp
                 contest_sp = self.contest_sp
+                
                 try:
                     async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_desertlands_hu_lc') as response:
                         res = await response.json()
@@ -161,16 +166,37 @@ class Web_handler():
         return drop_str.replace(" ", "_").lower(), contested
 
     def refresh_drops(self):
+
+        for map in self.map_hash.keys():
+            print(map)
+            #looppaa mappi kerrallaan
+            drops = self.get_drops(self.map_hash[map])
+            team_drop = self.get_team_drop(drops)
+            self.drops_map[map] = drops
+            self.team_drops_map[map] = team_drop
         self.drops_we = self.get_drops("mp_rr_desertlands_hu_lc")
         self.drops_sp = self.get_drops("mp_rr_tropic_island_mu2")
         self.team_we, self.contest_we = self.get_team_drop(self.drops_we)
         self.team_sp, self.contest_sp = self.get_team_drop(self.drops_sp)
+
+        print(self.team_drops_map)
+        print(self.drops_map)
     
     def set_game_count(self, count: int):
         count = int(count)
         self.game_count = count
 
     def __init__(self, url: str, team_name: str, print_res, print_drops, archive_result) -> None:
+        self.map_hash = {
+            "op": "mp_rr_olympus_mu2_v2",
+            "dc": "mp_rr_district",
+            "kc": "mp_rr_canyonlands_hu",
+            "we": "mp_rr_desertlands_hu_lc",
+            "sp": "mp_rr_tropic_island_mu2",
+            "bm": "mp_rr_divided_moon_mu1",
+        }
+        self.team_drops_map = {}
+        self.drops_map = {}
         self.lobby = self.parse_url(url)
         self.team_name = team_name
         self.refresh_drops()
@@ -181,3 +207,4 @@ class Web_handler():
         self.print_drops = print_drops
         self.archive_result = archive_result
         self.game_count = 6
+        

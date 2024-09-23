@@ -19,7 +19,7 @@ class MyClient(discord.Client):
 
     def allowed_channel(self, channel):
         #print(channel.name)
-        chls: list[str] = ['lootpaths-dev', 'imagebank-dev', 'dev', 'general', 'loot-pathit']
+        chls: list[str] = ['img-bank', 'history', 'lootpaths-dev', 'imagebank-dev', 'dev', 'general', 'loot-pathit']
         if channel.name in chls:
             return True
         return False
@@ -210,12 +210,10 @@ class MyClient(discord.Client):
         f'Commands:\n```!help -> this message(lol)\n\n!drops $drop1 $drop2... -> prints out as many drops as you need, needs exact match with imagebank names\n\n!lobby $url -> lobby url given in EXO, prints out drop spots for team {self.team_name}```')
 
     async def on_message(self, message):
-        if message.author == self.user:
+        if message.author == self.user or not self.allowed_channel(message.channel):
             return
         if message.content == '!help':
             await self.print_help_text(message.channel)
-        if not self.allowed_channel(message.channel):
-            return
         if len(message.content) > 0 and message.content[0] == '!':
             command = message.content.split(' ')
             if command[0] == '!drops':
