@@ -70,30 +70,58 @@ class Web_handler():
         await self.archive_result(self.results)
     
     async def poll_get_request_drops(self, start, end, type: str, interval):
+        first_poll = True
         async with aiohttp.ClientSession() as session:
             while self.is_not_over(start, datetime.now()):
                 # mp_rr_tropic_island_mu2
-                print("drops")
-                team_we = self.team_we
-                contest_we = self.contest_we
-                team_sp = self.team_sp
-                contest_sp = self.contest_sp
+                print("drops from poll")
+                # team_we = self.team_we
+                # contest_we = self.contest_we
+                # team_sp = self.team_sp
+                # contest_sp = self.contest_sp
+                drops = {}
                 
                 try:
-                    async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_desertlands_hu_lc') as response:
-                        res = await response.json()
-                        team_we, contest_we = self.get_team_drop(res)
-                    async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_tropic_island_mu2') as response:
-                        res = await response.json()
-                        team_sp, contest_sp = self.get_team_drop(res)
-                    if self.is_different(team_we, contest_we, team_sp, contest_sp):
-                        print("DIFF")
-                        print(team_we, team_sp, contest_sp, contest_we)
-                        self.team_we = team_we
-                        self.team_sp = team_sp
-                        self.contest_we = contest_we
-                        self.contest_sp = contest_sp
-                        await self.print_drops(True, ["", self.team_we, self.team_sp], "", [False, self.contest_we, self.contest_sp], True)
+                    #New
+                    print("Fetching all maps")
+                    for map in self.map_hash.keys():
+                        async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/{self.map_hash[map]}') as response:
+                            res = await response.json()
+                            # print(res)
+                            drops[map] = self.get_team_drop(res)
+                    print("Fetch over")
+                    if drops != self.team_drops_map:
+                        print("diff")
+                        drop_arr = [""]
+                        contest_arr = [False]
+                        map_key_arr = [""]
+                        for map in drops.keys():
+                            drop_arr.append(drops[map][0])
+                            contest_arr.append(drops[map][1])
+                            map_key_arr.append(self.map_key_hash[map])
+                        self.team_drops_map = drops
+                        print("printing res")
+                        await self.print_drops(not first_poll, drop_arr, "", contest_arr, True, map_key_arr)
+                        if first_poll:
+                            first_poll = False
+                    print(drops)
+                    print(self.team_drops_map)
+                    
+                    # ------------------
+                    # async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_desertlands_hu_lc') as response:
+                        # res = await response.json()
+                        # team_we, contest_we = self.get_team_drop(res)
+                    # async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/mp_rr_tropic_island_mu2') as response:
+                        # res = await response.json()
+                        # team_sp, contest_sp = self.get_team_drop(res)
+                    # if self.is_different(team_we, contest_we, team_sp, contest_sp):
+                        # print("DIFF")
+                        # print(team_we, team_sp, contest_sp, contest_we)
+                        # self.team_we = team_we
+                        # self.team_sp = team_sp
+                        # self.contest_we = contest_we
+                        # self.contest_sp = contest_sp
+                        # await self.print_drops(True, ["", self.team_we, self.team_sp], "", [False, self.contest_we, self.contest_sp], True)
                 except:
                     print("Error fetching drops")
                 await asyncio.sleep(600)
@@ -166,10 +194,9 @@ class Web_handler():
         return drop_str.replace(" ", "_").lower(), contested
 
     def refresh_drops(self):
-
         for map in self.map_hash.keys():
             print(map)
-            #looppaa mappi kerrallaan
+            # looppaa mappi kerrallaan
             drops = self.get_drops(self.map_hash[map])
             team_drop = self.get_team_drop(drops)
             self.drops_map[map] = drops
@@ -195,11 +222,19 @@ class Web_handler():
             "sp": "mp_rr_tropic_island_mu2",
             "bm": "mp_rr_divided_moon_mu1",
         }
+        self.map_key_hash = {
+            "we": "Worlds Edge:",
+            "sp": "Storm Point:",
+            "bm": "Broken Moon:",
+            "op": "Olympus:",
+            "kc": "Kings Canyon:",
+            "dc": "E-District:"
+        }
         self.team_drops_map = {}
         self.drops_map = {}
         self.lobby = self.parse_url(url)
         self.team_name = team_name
-        self.refresh_drops()
+        # self.refresh_drops()
         self.polling = False
         self.lobby_url = f'https://overstat.gg/api/stats/{self.lobby}/overall'
         self.results = {}
@@ -207,4 +242,8 @@ class Web_handler():
         self.print_drops = print_drops
         self.archive_result = archive_result
         self.game_count = 6
+        self.team_we = ""
+        self.contest_we = False
+        self.team_sp = ""
+        self.contest_sp = False
         

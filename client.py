@@ -166,13 +166,15 @@ class MyClient(discord.Client):
         #time.sleep(10)
     
     async def command_drops(self, alert: bool, command, message, contest_arr = [False, False, False], detailed = False, details = ["", "Worlds Edge:", "Storm Point:", "Broken Moon:", "Olympus:", "Kings Canyon:"]):
+        #New dynamic map printing inc
+        print(command)
         channel = await self.fetch_channel(self.loot_path_channel_id)
         await self.clear_drops_channel()
         await channel.send(self.get_drops_creation_date())
         if alert:
             await channel.send(f"<@&{self.role_tag_id}> there's been a change in contest or landings")
         for i in range(1, len(command)):
-            if detailed:
+            if detailed and command[i] != '':
                 msg_str: str = details[i]
                 if contest_arr[i]:
                     msg_str = msg_str.replace(':', ", :sos: **CONTESTED** :sos::")
@@ -202,7 +204,7 @@ class MyClient(discord.Client):
             self.wh.set_lobby(command[1])
         except AttributeError:
             self.wh = Web_handler(command[1], self.team_name, self.print_res, self.command_drops, self.archive_result)
-        await self.command_drops(False, ["", self.wh.team_we, self.wh.team_sp], message, [False, self.wh.contest_we, self.wh.contest_sp], True)
+        await self.command_drops(False, ["", "", ""], message, [False, False, False], True)
         await self.poll_results(games, start_time, end_time)
     
     async def print_help_text(self, channel):
