@@ -141,7 +141,7 @@ class MyClient(discord.Client):
         game_results = ''
         if 'games' in results:
             game_results = self.get_game_results(results["games"])
-        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{self.wh.game_count} # \n**Quality:** {quality_score}\n**Points:** {overall_points} pts\n**Placement:** {overall_points}pts {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
+        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{self.wh.game_count} # \n**Quality:** {quality_score}\n**Points:** {overall_points} pts\n**Placement:** {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
     
     async def print_res(self, res):
         channel = await self.fetch_channel(self.results_channel_id)
