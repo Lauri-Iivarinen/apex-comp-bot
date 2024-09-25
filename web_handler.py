@@ -59,10 +59,10 @@ class Web_handler():
                             self.results = res
                             await self.print_res(res)
                             print("new result found, sleeping for 15 min")
+                            if not self.games_remaining(): # if gane count reaches max, end loop without 15min delay
+                                break
                             await asyncio.sleep(900)
                             print('sleep over')
-                        if not self.games_remaining(): # if gane count reaches max, end loop without 15min delay
-                            break
                 except:
                     print("Fetching results failed")
                 await asyncio.sleep(interval)
@@ -74,7 +74,6 @@ class Web_handler():
         async with aiohttp.ClientSession() as session:
             while self.is_not_over(start, datetime.now()):
                 drops = {}
-                
                 try:
                     for map in self.map_hash.keys():
                         async with await session.get(f'https://overstat.gg/api/drops/{self.lobby}/{self.map_hash[map]}') as response:
