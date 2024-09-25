@@ -135,12 +135,13 @@ class MyClient(discord.Client):
         if 'analytics' in results and 'qualityScore' in results["analytics"]:
             quality_score = str(round(results['analytics']['qualityScore'], 2))
         team = self.find_team(results['teams'])
+        overall_points = team["overall_stats"]["score"]
         player_results: str = self.get_player_results(team)
         dt = self.today
         game_results = ''
         if 'games' in results:
             game_results = self.get_game_results(results["games"])
-        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{self.wh.game_count} # \n**Quality:** {quality_score}\n**Placement:** {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
+        return f'# SCRIMS {dt.day}.{dt.month}.{dt.year} - {games_played}/{self.wh.game_count} # \n**Quality:** {quality_score}\n**Points:** {overall_points} pts\n**Placement:** {overall_points}pts {self.get_placement(results)}\n## Players: ## \n{player_results}## Games: ##\n{game_results}'
     
     async def print_res(self, res):
         channel = await self.fetch_channel(self.results_channel_id)
