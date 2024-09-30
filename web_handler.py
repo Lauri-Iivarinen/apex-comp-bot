@@ -186,7 +186,7 @@ class Web_handler():
         self.map_hash = {
             "op": "mp_rr_olympus_mu2_v2",
             "dc": "mp_rr_district",
-            "kc": "mp_rr_canyonlands_hu",
+            "kc": "mp_rr_canyonlands_hu_v2",
             "we": "mp_rr_desertlands_hu_lc",
             "sp": "mp_rr_tropic_island_mu2",
             "bm": "mp_rr_divided_moon_mu1",
